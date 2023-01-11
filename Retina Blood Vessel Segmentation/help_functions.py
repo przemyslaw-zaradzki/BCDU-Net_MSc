@@ -39,10 +39,7 @@ def group_images(data,per_row):
 
 #visualize image (as PIL image, NOT as matplotlib!)
 def visualize(data,filename):
-    assert (len(data.shape)==3) #height*width*channels
     img = None
-    if data.shape[2]==1:  #in case it is black and white
-        data = np.reshape(data,(data.shape[0],data.shape[1]))
     if np.max(data)>1:
         img = Image.fromarray(data.astype(np.uint8))   #the image is already 0-255
     else:

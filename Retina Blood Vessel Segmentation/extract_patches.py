@@ -1,17 +1,15 @@
 from __future__ import division
-import numpy as np
+
 import random
 
+import numpy as np
+import tensorflow as tf
 
-from help_functions import load_hdf5
-from help_functions import visualize
-from help_functions import group_images
-
+from help_functions import group_images, load_hdf5, visualize
 from pre_processing import my_PreProc
 
-
 #To select the same images
-# random.seed(10)
+tf.random.set_seed(42)
 
 #Load the original data and return the extracted patches for training/testing
 def get_data_training(DRIVE_train_imgs_original,
@@ -19,7 +17,8 @@ def get_data_training(DRIVE_train_imgs_original,
                       patch_height,
                       patch_width,
                       N_subimgs,
-                      inside_FOV):
+                      inside_FOV,
+                      crop_train_imgs):
     train_imgs_original = load_hdf5(DRIVE_train_imgs_original)
     train_masks = load_hdf5(DRIVE_train_groudTruth) #masks always the same
     # visualize(group_images(train_imgs_original[0:20,:,:,:],5),'imgs_train')#.show()  #check original imgs train
@@ -28,9 +27,13 @@ def get_data_training(DRIVE_train_imgs_original,
     train_imgs = my_PreProc(train_imgs_original)
     train_masks = train_masks/255.
 
-    train_imgs = train_imgs[:,:,9:574,:]  #cut bottom and top so now it is 565*565
-    train_masks = train_masks[:,:,9:574,:]  #cut bottom and top so now it is 565*565
+    if crop_train_imgs:
+        train_imgs = train_imgs[:,:,9:574,:]  #cut bottom and top so now it is 565*565
+        train_masks = train_masks[:,:,9:574,:]  #cut bottom and top so now it is 565*565
     data_consistency_check(train_imgs,train_masks)
+
+    train_masks[train_masks>=0.5] = 1
+    train_masks[train_masks<=0.5] = 0
 
     #check masks are within 0-1
     assert(np.min(train_masks)==0 and np.max(train_masks)==1)
@@ -138,7 +141,7 @@ def data_consistency_check(imgs,masks):
 #  -- Inside OR in full image
 def extract_random(full_imgs,full_masks, patch_h,patch_w, N_patches, inside=True):
     if (N_patches%full_imgs.shape[0] != 0):
-        print ("N_patches: plase enter a multiple of 20")
+        print ("N_patches: plase enter a multiple of train_Nimgs")
         exit()
     assert (len(full_imgs.shape)==4 and len(full_masks.shape)==4)  #4D arrays
     assert (full_imgs.shape[1]==1 or full_imgs.shape[1]==3)  #check the channel is 1 or 3
@@ -330,13 +333,13 @@ def paint_border(data,patch_h,patch_w):
     new_img_h = 0
     new_img_w = 0
     if (img_h%patch_h)==0:
-        new_img_h = img_h
+        new_img_h = int(img_h)
     else:
-        new_img_h = ((int(img_h)/int(patch_h))+1)*patch_h
+        new_img_h = int(((int(img_h)/int(patch_h))+1)*patch_h)
     if (img_w%patch_w)==0:
-        new_img_w = img_w
+        new_img_w = int(img_w)
     else:
-        new_img_w = ((int(img_w)/int(patch_w))+1)*patch_w
+        new_img_w = int(((int(img_w)/int(patch_w))+1)*patch_w)
     new_data = np.zeros((data.shape[0],data.shape[1],new_img_h,new_img_w))
     new_data[:,:,0:img_h,0:img_w] = data[:,:,:,:]
     return new_data

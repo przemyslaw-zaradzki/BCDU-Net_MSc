@@ -1,12 +1,14 @@
 from __future__ import division
+import numpy as np
 from keras.models import Model
 from keras.layers import Input, concatenate, Conv2D, MaxPooling2D, UpSampling2D, Reshape, core, Dropout
-from keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from keras import backend as K
 from keras.utils.vis_utils import plot_model as plot
-from keras.optimizers import SGD
-from keras.optimizers import *
+from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.optimizers import *
+from tensorflow.keras.losses import BinaryCrossentropy
 from keras.layers import *        
 
 
@@ -76,7 +78,7 @@ def BCDU_net_D3(input_size = (256,256,1)):
     conv8 = Conv2D(2, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv8)
     conv9 = Conv2D(1, 1, activation = 'sigmoid')(conv8)
 
-    model = Model(input = inputs, output = conv9)
+    model = Model(inputs, conv9)
     model.compile(optimizer = Adam(lr = 1e-4), loss = 'binary_crossentropy', metrics = ['accuracy'])
     return model
         
@@ -136,8 +138,8 @@ def BCDU_net_D1(input_size = (256,256,1)):
     conv8 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv8)
     conv8 = Conv2D(2, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv8)
     conv9 = Conv2D(1, 1, activation = 'sigmoid')(conv8)
-
-    model = Model(input = inputs, output = conv9)
+    model = Model(inputs, conv9)
+    
     model.compile(optimizer = Adam(lr = 1e-4), loss = 'binary_crossentropy', metrics = ['accuracy'])
     return model   
     

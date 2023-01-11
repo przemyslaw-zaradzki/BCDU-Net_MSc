@@ -1,5 +1,6 @@
 from __future__ import division
 import os
+import argparse
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import models as M
 import numpy as np
@@ -33,19 +34,24 @@ from pre_processing import my_PreProc
 
 
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--dataset', type=str, required=True)
+args = parser.parse_args()
+
+
 
 #========= CONFIG FILE TO READ FROM =======
 #===========================================
 #run the training on invariant or local
-path_data = './DRIVE_datasets_training_testing/'
+path_data = f'./data/{args.dataset}_datasets_training_testing/'
 
 #original test images (for FOV selection)
-DRIVE_test_imgs_original = path_data + 'DRIVE_dataset_imgs_test.hdf5'
+DRIVE_test_imgs_original = path_data + f'{args.dataset}_dataset_imgs_test.hdf5'
 test_imgs_orig = load_hdf5(DRIVE_test_imgs_original)
 full_img_height = test_imgs_orig.shape[2]
 full_img_width = test_imgs_orig.shape[3]
 #the border masks provided by the DRIVE
-DRIVE_test_border_masks = path_data + 'DRIVE_dataset_borderMasks_test.hdf5'
+DRIVE_test_border_masks = path_data + f'{args.dataset}_dataset_borderMasks_test.hdf5'
 test_border_masks = load_hdf5(DRIVE_test_border_masks)
 # dimension of the patches
 patch_height = 64
@@ -55,10 +61,12 @@ stride_height = 5
 stride_width  = 5
 assert (stride_height < patch_height and stride_width < patch_width)
 #model name
-name_experiment = 'test'
+name_experiment = f'{args.dataset}_loss'
 path_experiment = './' +name_experiment +'/'
+if not os.path.isdir(path_experiment):
+    os.mkdir(path_experiment)
 #N full images to be predicted
-Imgs_to_test = 2
+Imgs_to_test = len(os.listdir(f'./data/{args.dataset}/test/images'))
 #Grouping of the predicted images
 N_visual = 1
 #====== average mode ===========
@@ -73,8 +81,8 @@ patches_masks_test = None
 if average_mode == True:
     patches_imgs_test, new_height, new_width, masks_test = get_data_testing_overlap(
         DRIVE_test_imgs_original = DRIVE_test_imgs_original,  #original
-        DRIVE_test_groudTruth = path_data + 'DRIVE_dataset_groundTruth_test.hdf5',  #masks
-        Imgs_to_test = 20,
+        DRIVE_test_groudTruth = path_data + f'{args.dataset}_dataset_groundTruth_test.hdf5',  #masks
+        Imgs_to_test = Imgs_to_test,
         patch_height = patch_height,
         patch_width = patch_width,
         stride_height = stride_height,
@@ -83,8 +91,8 @@ if average_mode == True:
 else:
     patches_imgs_test, patches_masks_test = get_data_testing(
         DRIVE_test_imgs_original = DRIVE_test_imgs_original,  #original
-        DRIVE_test_groudTruth = path_data + 'DRIVE_dataset_groundTruth_test.hdf5',  #masks
-        Imgs_to_test = 20,
+        DRIVE_test_groudTruth = path_data + f'{args.dataset}_dataset_groundTruth_test.hdf5',  #masks
+        Imgs_to_test = Imgs_to_test,
         patch_height = patch_height,
         patch_width = patch_width,
     )
@@ -100,8 +108,9 @@ patches_imgs_test = np.einsum('klij->kijl', patches_imgs_test)
 
 model = M.BCDU_net_D3(input_size = (64,64,1))
 model.summary()
-model.load_weights('weight_lstm.hdf5')
-predictions = model.predict(patches_imgs_test, batch_size=16, verbose=1)
+model.load_weights(f'{args.dataset}_loss_lstm.hdf5')
+predictions = model.predict(patches_imgs_test, batch_size=16, verbose=1)[:,:,:,0]
+predictions = np.expand_dims(predictions, axis=-1)
 
 predictions = np.einsum('kijl->klij', predictions)
 print(patches_imgs_test.shape)
@@ -150,6 +159,7 @@ assert (N_predicted%group==0)
 print ("\n\n========  Evaluate the results =======================")
 #predictions only inside the FOV
 y_scores, y_true = pred_only_FOV(pred_imgs,gtruth_masks, test_border_masks)  #returns data only inside the FOV
+y_true = np.round(y_true)
 print(y_scores.shape)
 
 print ("Calculating results only inside the FOV:")
@@ -237,9 +247,18 @@ file_perf.close()
 # Visualize
 fig,ax = plt.subplots(10,3,figsize=[15,15])
 
-for idx in range(10):
+for idx in range(Imgs_to_test):
     ax[idx, 0].imshow(np.uint8(np.squeeze((orig_imgs[idx]))))
     ax[idx, 1].imshow(np.squeeze(gtruth_masks[idx]), cmap='gray')
     ax[idx, 2].imshow(np.squeeze(pred_imgs[idx]), cmap='gray')
 
 plt.savefig(path_experiment+'sample_results.png')
+
+
+for idx in range(Imgs_to_test):
+    orig_stripe = np.squeeze((orig_imgs[idx]))
+    masks_stripe = np.squeeze(gtruth_masks[idx])
+    pred_stripe = np.squeeze(pred_imgs[idx])
+    total_img = np.concatenate((orig_stripe,masks_stripe,pred_stripe),axis=0)
+    
+    visualize(total_img,path_experiment+name_experiment +"_Original_GroundTruth_Prediction"+str(idx))
