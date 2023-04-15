@@ -1,3 +1,20 @@
+# Retina Vessel Segmentation from OCT Fundus Reconstruction with BCDU-Net
+
+This software is forked from rezazad68/BCDU-Net and allows segmentation of blood vessels in **OCT reconstruction images** of the human eye retina. Details of the application of the software can be found in the paper:
+
+> Marciniak, T.; Stankiewicz, A.; Zaradzki, P. Neural Networks Application for Accurate Retina Vessel Segmentation from OCT Fundus Reconstruction. Sensors 2023, 23, 1870. https://doi.org/10.3390/s23041870
+
+Link to the paper: https://www.mdpi.com/1424-8220/23/4/1870
+
+The dataset **CAVRI-C** used by the software is available free of charge at: http://dsp.org.pl/CAVRI_Database/191/ 
+
+Example of three fundus reconstructions with ground truth and corresponding segmentation results for 5 neural networks (analyzed in the paper above):
+
+![](output_images/OCT_blood_vessels_segmentation.png)
+
+Here is the original README.md from https://github.com/rezazad68/BCDU-Net with environment requirements and setup information.
+
+
 # [Bi-Directional ConvLSTM U-Net with Densely Connected Convolutions ](http://openaccess.thecvf.com/content_ICCVW_2019/papers/VRMI/Azad_Bi-Directional_ConvLSTM_U-Net_with_Densley_Connected_Convolutions_ICCVW_2019_paper.pdf)
 
 
